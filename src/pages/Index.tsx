@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +18,8 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState<string[]>([]);
   const [showNotification, setShowNotification] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [selectedStream, setSelectedStream] = useState<any>(null);
 
   useEffect(() => {
     setIsVisible(true);
@@ -37,6 +40,18 @@ const Index = () => {
     return () => clearInterval(notificationInterval);
   }, []);
 
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   const allGames = ['CS2', 'Dota 2', 'Valorant', 'League of Legends'];
 
   const liveTournaments = [
@@ -52,7 +67,8 @@ const Index = () => {
       viewers: '145K',
       team1Score: 13,
       team2Score: 11,
-      maxScore: 16
+      maxScore: 16,
+      twitchChannel: 'esl_csgo'
     },
     {
       id: 2,
@@ -66,7 +82,8 @@ const Index = () => {
       viewers: '328K',
       team1Score: 1,
       team2Score: 1,
-      maxScore: 3
+      maxScore: 3,
+      twitchChannel: 'dota2ti'
     },
     {
       id: 3,
@@ -80,7 +97,8 @@ const Index = () => {
       viewers: '89K',
       team1Score: 9,
       team2Score: 7,
-      maxScore: 13
+      maxScore: 13,
+      twitchChannel: 'valorant'
     }
   ];
 
@@ -350,6 +368,14 @@ const Index = () => {
                   </a>
                 ))}
               </nav>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleTheme}
+                className="border-secondary hover:bg-secondary hover:text-secondary-foreground"
+              >
+                <Icon name={theme === 'dark' ? 'Sun' : 'Moon'} size={20} />
+              </Button>
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon" className="border-primary hover:bg-primary hover:text-primary-foreground">
@@ -447,13 +473,33 @@ const Index = () => {
                             {tournament.game}
                           </Badge>
                         </div>
-                        <div className="h-48 bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 flex items-center justify-center relative overflow-hidden">
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.1),transparent_50%)]"></div>
-                          <div className={`transition-all duration-500 ${hoveredCard === tournament.id ? 'scale-125 rotate-12' : 'scale-100 rotate-0'}`}>
-                            <Icon name="Gamepad2" size={64} className="text-primary/40" />
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
-                        </div>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <div className="h-48 bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 flex items-center justify-center relative overflow-hidden cursor-pointer">
+                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.1),transparent_50%)]"></div>
+                              <div className={`transition-all duration-500 ${hoveredCard === tournament.id ? 'scale-125 rotate-12' : 'scale-100 rotate-0'}`}>
+                                <Icon name="Play" size={64} className="text-primary/60" />
+                              </div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
+                              <div className="absolute bottom-4 left-4 flex items-center gap-2 text-sm text-primary font-semibold">
+                                <Icon name="Tv" size={16} />
+                                <span>Смотреть на Twitch</span>
+                              </div>
+                            </div>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-5xl w-full h-[80vh] p-0">
+                            <DialogHeader className="p-6 pb-0">
+                              <DialogTitle className="text-2xl gradient-text">{tournament.tournament}</DialogTitle>
+                            </DialogHeader>
+                            <div className="w-full h-full p-6 pt-4">
+                              <iframe
+                                src={`https://player.twitch.tv/?channel=${tournament.twitchChannel}&parent=${window.location.hostname}`}
+                                className="w-full h-full rounded-lg"
+                                allowFullScreen
+                              ></iframe>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                       <div className="p-5 relative">
                         <h3 className="font-bold text-lg mb-2 text-primary group-hover:neon-glow transition-all duration-300">
