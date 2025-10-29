@@ -9,6 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
+import { AuthDialog } from '@/components/AuthDialog';
+import { UserProfile } from '@/components/UserProfile';
 
 const Index = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -20,6 +22,8 @@ const Index = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [selectedStream, setSelectedStream] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -391,10 +395,28 @@ const Index = () => {
                   </div>
                 </SheetContent>
               </Sheet>
+              
+              {user ? (
+                <UserProfile user={user} onLogout={() => setUser(null)} />
+              ) : (
+                <Button
+                  onClick={() => setShowAuthDialog(true)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Icon name="LogIn" size={18} className="mr-2" />
+                  Войти
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </header>
+      
+      <AuthDialog 
+        isOpen={showAuthDialog} 
+        onClose={() => setShowAuthDialog(false)} 
+        onLogin={setUser}
+      />
 
       <div className="bg-card/50 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-4">
