@@ -22,27 +22,65 @@ const Index = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [selectedStream, setSelectedStream] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem('esportsUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [favoriteTeams, setFavoriteTeams] = useState<string[]>(() => {
+    const saved = localStorage.getItem('favoriteTeams');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('esportsUser', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('esportsUser');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem('favoriteTeams', JSON.stringify(favoriteTeams));
+  }, [favoriteTeams]);
 
   useEffect(() => {
     setIsVisible(true);
     
     const notificationInterval = setInterval(() => {
-      const messages = [
-        'Natus Vincere выиграли раунд!',
-        'Новый матч начнётся через 5 минут',
-        'Team Spirit обогнали в рейтинге!',
-        'Fnatic набрали 10 очков'
-      ];
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-      setNotifications(prev => [randomMsg, ...prev].slice(0, 5));
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
+      if (!user) return;
+      
+      const allTeams = ['Natus Vincere', 'Team Spirit', 'Fnatic', 'G2 Esports', 'Vitality', 'OG', 'Team Liquid'];
+      const favoriteTeamsInAll = favoriteTeams.filter(team => allTeams.includes(team));
+      
+      if (favoriteTeamsInAll.length > 0) {
+        const randomTeam = favoriteTeamsInAll[Math.floor(Math.random() * favoriteTeamsInAll.length)];
+        const messages = [
+          `🔥 ${randomTeam} выиграли раунд!`,
+          `⏰ ${randomTeam} начнут матч через 5 минут`,
+          `📈 ${randomTeam} обогнали в рейтинге!`,
+          `🏆 ${randomTeam} одержали победу!`,
+          `⚡ ${randomTeam} в топ-форме сегодня!`
+        ];
+        const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+        setNotifications(prev => [randomMsg, ...prev].slice(0, 5));
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+      } else {
+        const generalMessages = [
+          '📢 Новый турнир начинается завтра!',
+          '🎮 Сейчас идёт 15 live матчей',
+          '⭐ Добавьте команды в избранное для персональных уведомлений'
+        ];
+        const randomMsg = generalMessages[Math.floor(Math.random() * generalMessages.length)];
+        setNotifications(prev => [randomMsg, ...prev].slice(0, 5));
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+      }
     }, 10000);
 
     return () => clearInterval(notificationInterval);
-  }, []);
+  }, [user, favoriteTeams]);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -54,6 +92,20 @@ const Index = () => {
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const toggleFavorite = (teamName: string) => {
+    setFavoriteTeams(prev => 
+      prev.includes(teamName) 
+        ? prev.filter(t => t !== teamName)
+        : [...prev, teamName]
+    );
+    
+    if (user && !favoriteTeams.includes(teamName)) {
+      setNotifications(prev => [`${teamName} добавлена в избранное!`, ...prev].slice(0, 5));
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
+    }
   };
 
   const allGames = ['CS2', 'Dota 2', 'Valorant', 'League of Legends'];
@@ -396,6 +448,43 @@ const Index = () => {
                 </SheetContent>
               </Sheet>
               
+              {user && favoriteTeams.length > 0 && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-500/10">
+                      <Icon name="Heart" size={18} className="mr-2 fill-red-500" />
+                      {favoriteTeams.length}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-80 bg-card border-border">
+                    <SheetHeader>
+                      <SheetTitle className="text-xl font-bold gradient-text">Избранные команды</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-6 space-y-2">
+                      {favoriteTeams.map((team) => (
+                        <div
+                          key={team}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon name="Trophy" size={18} className="text-primary" />
+                            <span className="font-medium">{team}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => toggleFavorite(team)}
+                          >
+                            <Icon name="X" size={16} className="text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
+              
               {user ? (
                 <UserProfile user={user} onLogout={() => setUser(null)} />
               ) : (
@@ -580,15 +669,47 @@ const Index = () => {
                             {match.game}
                           </Badge>
                           <div className="flex items-center gap-4">
-                            <span className="font-bold text-lg group-hover:text-primary transition-colors duration-300">
-                              {match.team1}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-lg group-hover:text-primary transition-colors duration-300">
+                                {match.team1}
+                              </span>
+                              {user && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => toggleFavorite(match.team1)}
+                                >
+                                  <Icon 
+                                    name={favoriteTeams.includes(match.team1) ? "Heart" : "HeartOff"} 
+                                    size={16}
+                                    className={favoriteTeams.includes(match.team1) ? "fill-red-500 text-red-500" : ""}
+                                  />
+                                </Button>
+                              )}
+                            </div>
                             <span className="text-muted-foreground group-hover:scale-125 transition-transform duration-300 inline-block">
                               vs
                             </span>
-                            <span className="font-bold text-lg group-hover:text-primary transition-colors duration-300">
-                              {match.team2}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-lg group-hover:text-primary transition-colors duration-300">
+                                {match.team2}
+                              </span>
+                              {user && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => toggleFavorite(match.team2)}
+                                >
+                                  <Icon 
+                                    name={favoriteTeams.includes(match.team2) ? "Heart" : "HeartOff"} 
+                                    size={16}
+                                    className={favoriteTeams.includes(match.team2) ? "fill-red-500 text-red-500" : ""}
+                                  />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                           <p className="text-sm text-muted-foreground mt-2">{match.tournament}</p>
                         </div>
@@ -659,8 +780,24 @@ const Index = () => {
                             {team.logo}
                           </div>
                           <div className="flex-1">
-                            <div className="font-bold text-sm group-hover:text-primary transition-colors duration-300">
-                              {team.name}
+                            <div className="flex items-center gap-2">
+                              <div className="font-bold text-sm group-hover:text-primary transition-colors duration-300">
+                                {team.name}
+                              </div>
+                              {user && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => toggleFavorite(team.name)}
+                                >
+                                  <Icon 
+                                    name={favoriteTeams.includes(team.name) ? "Heart" : "HeartOff"} 
+                                    size={14}
+                                    className={favoriteTeams.includes(team.name) ? "fill-red-500 text-red-500" : ""}
+                                  />
+                                </Button>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground">{team.game}</div>
                           </div>
